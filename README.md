@@ -7,6 +7,7 @@ Abaixo como rodar essa aplicação.
 
 - Python 3.13 ou superior  
 - uv instalado (gerenciador oficial da Astral)
+- MYSQL instalado no computador e rodando.
 - criar **.env** para configuração de variáveis de ambient.
 
 ## Instalação do uv
