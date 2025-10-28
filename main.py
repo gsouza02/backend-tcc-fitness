@@ -1,16 +1,13 @@
 from fastapi import FastAPI, Depends, HTTPException, APIRouter
 from sqlalchemy.sql import text
-from core.database import get_db
+from src.core.database import get_db_mysql
 from sqlalchemy.orm import Session
-from routers.models.consultas import consulta_get
+from src.routers.models.consultas import consulta_get
 from fastapi.middleware.cors import CORSMiddleware
 ## IMPORTAÇÃO DOS ROUTERS
-from routers.router import router
-from routers.apis.usuario import cadastro
+from src.routers.router import router
+from src.routers.apis.usuario import cadastro
 ## ----------------------------------------------
-import bcrypt
-
-
 # from starlette.middleware.base import BaseHTTPMiddleware
 
 app = FastAPI()
