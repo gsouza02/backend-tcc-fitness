@@ -22,7 +22,6 @@ def create_db_tcc():
         """
         session.execute(text(create_table_sql))
         session.commit()
-        print("Banco 'tcc' e tabela 'USUARIO' verificados/criados com sucesso.")
     except Exception as e:
         print(f"Erro ao criar banco ou tabela: {e}")
     finally:

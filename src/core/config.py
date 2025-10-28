@@ -9,3 +9,9 @@ class Settings(BaseSettings):
     MYSQL_PORT: str
     MYSQL_USER: str
     MYSQL_PASSWORD: str
+
+
+class SettingsAuth(BaseSettings):
+    load_dotenv()
+    SECRET_KEY: str
+    ALGORITHM: str
