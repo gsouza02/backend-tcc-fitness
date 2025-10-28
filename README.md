@@ -25,7 +25,7 @@ uv --version
 ## Configuração do ambiente
 
 Para instalar todas as dependências do projeto:
-**uv sync**
+`uv sync`
 
 Esse comando cria automaticamente o ambiente virtual do projeto e instala todas as dependências listadas no pyproject.toml.
 
@@ -35,11 +35,11 @@ O projeto possui uma task configurada chamada `s`, que executa o servidor FastAP
 
 (Para rodar pode ser necessário executar o seguinte comando)
 
-**uv pip install fastapi[standard]**
+`uv pip install fastapi[standard]`
 
 Após isso:
 
-**uv run task s**
+`uv run task s`
 
 No pyproject.toml, a task está configurada assim:
 [tool.taskipy.tasks]
