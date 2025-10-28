@@ -1,4 +1,4 @@
-# 🚀 Back TCC
+# Backend TCC fitness
 
 Projeto backend do TCC, desenvolvido em Python 3.13 com FastAPI, gerenciado pelo [uv](https://docs.astral.sh/uv).
 Abaixo como rodar essa aplicação.
@@ -7,6 +7,7 @@ Abaixo como rodar essa aplicação.
 
 - Python 3.13 ou superior  
 - uv instalado (gerenciador oficial da Astral)
+- criar **.env** para configuração de variáveis de ambient.
 
 ## Instalação do uv
 
