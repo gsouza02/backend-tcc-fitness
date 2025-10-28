@@ -33,7 +33,7 @@ Esse comando cria automaticamente o ambiente virtual do projeto e instala todas 
 
 O projeto possui uma task configurada chamada `s`, que executa o servidor FastAPI em modo de desenvolvimento:
 
-Para rodar a CLI do fastapi é necessário executar o esse comando.
+Para rodar a CLI do fastapi é necessário executar o seguinte comando.
 
 `uv pip install fastapi[standard]`
 
