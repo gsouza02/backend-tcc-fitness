@@ -38,7 +38,14 @@ def cadastro(user: PostCadastro, session: Session = Depends(get_db_mysql)):
     session.execute(text(query), params)
     session.commit()
 
-    return HTTPException(status_code=status.HTTP_201_CREATED, detail="Usuário cadastrado com sucesso!")
+    # Buscar o usuário recém-criado para gerar o token
+    query_usuario = "SELECT * FROM TCC.usuario WHERE email = :email"
+    usuario_criado = consulta_get(query_usuario, session, {"email": user.email})
+    if usuario_criado:
+        token = generate_token(usuario_criado[0])
+        return {"auth_token": token.get("auth_token")}
+    
+    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Erro ao cadastrar usuário!")
 
 
 @router.post("/login")
@@ -54,7 +61,7 @@ def login_usuario(response: Response,login: PostLogin, session: Session = Depend
 
         token = generate_token(usuario)
     
-        return {HTTPException(status_code=status.HTTP_200_OK, detail={"token": token})}
+        return {"token": token.get("auth_token")}
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Usuário ou senha inválidos!")
     

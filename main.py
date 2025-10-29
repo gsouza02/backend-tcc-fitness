@@ -19,16 +19,17 @@ app.include_router(router)
 
 origins = [
     "http://localhost:4200",
-    "http://localhost:8000"
+    "http://localhost:8000",
+    "http://localhost:8081"
 ]
 
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=origins,
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    # allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # class CookieMiddleware(BaseHTTPMiddleware):
 #     async def dispatch(self, request: Request, call_next):
