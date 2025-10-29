@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from src.routers.router import router
@@ -42,36 +42,46 @@ def cadastro(user: PostCadastro, session: Session = Depends(get_db_mysql)):
 
 
 @router.post("/login")
-def login_usuario(login: PostLogin, session: Session = Depends(get_db_mysql)):
+def login_usuario(response: Response,login: PostLogin, session: Session = Depends(get_db_mysql)):
 
-    query = "SELECT id, senha FROM TCC.USUARIO WHERE email = :email"
-    result = session.execute(text(query), {"email": login.email}).fetchone()
-    if not result: raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário ou senha inválidos!")
+    query = "SELECT * FROM TCC.USUARIO WHERE email = :email"
+    usuario = consulta_get(query, session, {"email": login.email})
+    if not usuario:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário ou senha inválidos!")
+    usuario = usuario[0]
 
+    if bcrypt.checkpw(login.senha.encode('utf-8'), usuario['senha'].encode('utf-8')):
 
-    if bcrypt.checkpw(login.senha.encode('utf-8'), result[1].encode('utf-8')):
-
-        return generate_token(login.email)
+        token = generate_token(usuario)
+    
+        return {HTTPException(status_code=status.HTTP_200_OK, detail={"token": token})}
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Usuário ou senha inválidos!")
     
 
-def generate_token(email):
+def generate_token(usuario):
 
     exp = datetime.now() + timedelta(hours=1)
 
     payload = {
-            "sub": email,
+            "sub": {
+                'id': usuario['id'],
+                'nome': usuario['nome'],
+                'email': usuario['email'],
+                'username': usuario['username']
+            },
             "exp": exp
         }
 
-    acecess_token = jwt.encode(
+    access_token = jwt.encode(
         payload,
         SettingsAuth().SECRET_KEY,
         algorithm=SettingsAuth().ALGORITHM
     )
 
+    # return access_token
+
     return {
-        'access_token': acecess_token,
+        'auth_token': access_token,
         'expiration': exp.isoformat()
     }
