@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from src.routers.router import router
 from src.core.database import get_db_mysql
+from src.core.postgressdb import get_db_postgress
 from src.routers.models.consultas import consulta_get
 from src.routers.models.usuario_model import PostCadastro, PostLogin
 from datetime import datetime, timedelta
@@ -12,7 +13,7 @@ import bcrypt
 
 
 @router.post("/cadastro")
-def cadastro(user: PostCadastro, session: Session = Depends(get_db_mysql)):
+def cadastro(user: PostCadastro, session: Session = Depends(get_db_postgress)):
     query = f"""
     SELECT 1 FROM TCC.usuario WHERE username = '{user.username}' OR email = '{user.email}'
     """

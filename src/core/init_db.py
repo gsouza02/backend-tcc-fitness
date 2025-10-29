@@ -1,9 +1,10 @@
 from sqlalchemy import text
 from src.core.database import get_db_mysql  # ajuste conforme seu projeto
+from src.core.postgressdb import get_db_postgress
 
 def create_db_tcc():
     """Cria o banco 'tcc' e a tabela USUARIO se não existirem usando a sessão do get_db_mysql."""
-    db_gen = get_db_mysql()
+    db_gen = get_db_postgress()
     session = next(db_gen)
     try:
         # Criação do banco de dados 'tcc' se não existir

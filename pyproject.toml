@@ -8,6 +8,7 @@ dependencies = [
     "fastapi>=0.120.1",
     "mysql-connector>=2.2.9",
     "pandas>=2.3.3",
+    "psycopg2>=2.9.11",
     "pydantic-settings>=2.11.0",
     "pymysql>=1.1.2",
     "python-dotenv>=1.2.1",
@@ -16,6 +17,10 @@ dependencies = [
     "taskipy>=1.14.1",
     "uvicorn>=0.30.0",
 ]
+
+[tool.uv]
+index-url = "https://binarios.intranet.bb.com.br/artifactory/api/pypi/pypi/simple"
+allow-insecure-host = ["binarios.intranet.bb.com.br"]
 
 [tool.taskipy.tasks]
 s = "fastapi dev main.py --host 0.0.0.0 --port 8000"
