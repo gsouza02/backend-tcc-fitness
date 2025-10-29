@@ -133,6 +133,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+/.venv
 
 # Spyder project settings
 .spyderproject
@@ -177,3 +178,4 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 .env
+uv.lock

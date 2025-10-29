@@ -6,7 +6,6 @@ requires-python = ">=3.11"
 dependencies = [
     "bcrypt>=5.0.0",
     "fastapi>=0.120.1",
-    "mysql>=0.0.3",
     "mysql-connector>=2.2.9",
     "pandas>=2.3.3",
     "pydantic-settings>=2.11.0",
