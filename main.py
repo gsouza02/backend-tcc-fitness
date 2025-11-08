@@ -8,6 +8,7 @@ from src.core.init_db import create_db_tcc
 # IMPORTAÇÃO DOS ROUTERS
 from src.routers.router import router
 from src.routers.apis.usuario import cadastro
+from src.routers.apis.usuario import gpt
 ## ----------------------------------------------
 # from starlette.middleware.base import BaseHTTPMiddleware
 
