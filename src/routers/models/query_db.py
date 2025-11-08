@@ -12,12 +12,28 @@ queries_db = {
         );
     """,
 
+    "PROGRAMA_TREINO": """
+        CREATE TABLE IF NOT EXISTS TCC.PROGRAMA_TREINO (
+            id_programa_treino INT AUTO_INCREMENT PRIMARY KEY,
+            id_usu INT NOT NULL,
+            nome VARCHAR(100) NOT NULL,
+            descricao VARCHAR(255),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (id_usu)
+                REFERENCES TCC.USUARIO(id)
+                ON DELETE CASCADE
+                ON UPDATE CASCADE
+        );
+    """,
+
     "treino": """
         CREATE TABLE IF NOT EXISTS TCC.TREINO (
             id INT AUTO_INCREMENT PRIMARY KEY,
             nome VARCHAR(100) NOT NULL,
             descricao VARCHAR(255),
             id_usuario INT NOT NULL,
+            id_programa_treino INT NULL,
             duracao INT,
             dificuldade VARCHAR(50),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -25,6 +41,10 @@ queries_db = {
             FOREIGN KEY (id_usuario)
                 REFERENCES TCC.USUARIO(id)
                 ON DELETE CASCADE
+                ON UPDATE CASCADE,
+            FOREIGN KEY (id_programa_treino)
+                REFERENCES TCC.PROGRAMA_TREINO(id_programa_treino)
+                ON DELETE SET NULL
                 ON UPDATE CASCADE
         );
     """,
@@ -64,26 +84,6 @@ queries_db = {
             id_ex_treino INT NOT NULL,
             FOREIGN KEY (id_ex_treino)
                 REFERENCES TCC.EXERCICIO_TREINO(id_ex_treino)
-                ON DELETE CASCADE
-                ON UPDATE CASCADE
-        );
-    """,
-
-    "PROGRAMA_TREINO": """
-        CREATE TABLE IF NOT EXISTS TCC.PROGRAMA_TREINO (
-            id_PROGRAMA_TREINO INT AUTO_INCREMENT PRIMARY KEY,
-            id_usu INT NOT NULL,
-            id_treino INT NOT NULL,
-            nome VARCHAR(100) NOT NULL,
-            descricao VARCHAR(255),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            FOREIGN KEY (id_usu)
-                REFERENCES TCC.USUARIO(id)
-                ON DELETE CASCADE
-                ON UPDATE CASCADE,
-            FOREIGN KEY (id_treino)
-                REFERENCES TCC.TREINO(id)
                 ON DELETE CASCADE
                 ON UPDATE CASCADE
         );

@@ -49,6 +49,7 @@ REQUISITOS OBRIGATÓRIOS
 8. Exercícios devem ser compatíveis com as condições e equipamento informados. Ajuste séries, repetições e descanso conforme o nível/objetivo (ex.: hipertrofia, resistência, emagrecimento).
 9. Se houver lesões ou limitações, adapte a seleção de exercícios e descreva isso no campo `descricao` do treino.
 10. Sempre retorne um JSON sintaticamente válido (aberturas/fechamentos corretos, aspas em strings, vírgulas adequadas).
+11. Gere um treino para cada dia disponivel do usuario.
 
 PROCESSO DE GERAÇÃO
 - Primeiro, interprete o perfil do usuário (idade, experiência, disponibilidade, objetivos, lesões, equipamentos).
@@ -66,21 +67,24 @@ ANAMNESE DO USUÁRIO
 
 
 def build_prompt(anamnese: PostAnamnese) -> str:
+    objetivos_text = ", ".join(anamnese.objetivos) if anamnese.objetivos else "não especificado"
+    equipamentos_text = anamnese.equipamentos or "não informado"
+
     anamnese_text = (
         f"ID do usuário: {anamnese.usuario_id}\n"
         f"Idade: {anamnese.idade}\n"
         f"Sexo: {anamnese.sexo}\n"
         f"Peso (kg): {anamnese.peso}\n"
         f"Experiência: {anamnese.experiencia}\n"
-        f"Tempo de treino atual (meses): {anamnese.tempo_treino}\n"
+        f"Tempo de treino atual: {anamnese.tempo_treino}\n"
         f"Dias por semana disponíveis: {anamnese.dias_semana}\n"
-        f"Tempo disponível por treino (minutos): {anamnese.tempo_treino_por_dia}\n"
-        f"Objetivos principais: {anamnese.objetivos}\n"
+        f"Tempo disponível por treino: {anamnese.tempo_treino_por_dia}\n"
+        f"Objetivos principais: {objetivos_text}\n"
         f"Objetivo específico: {anamnese.objetivo_especifico}\n"
-        f"Lesões ou limitações: {anamnese.lesao}\n"
-        f"Condições médicas: {anamnese.condicao_medica}\n"
-        f"Exercícios que não gosta: {anamnese.exercicio_nao_gosta}\n"
-        f"Equipamentos disponíveis: {anamnese.equipamentos}"
+        f"Lesões ou limitações: {anamnese.lesao or 'nenhuma'}\n"
+        f"Condições médicas: {anamnese.condicao_medica or 'nenhuma'}\n"
+        f"Exercícios que não gosta: {anamnese.exercicio_nao_gosta or 'nenhum'}\n"
+        f"Equipamentos disponíveis: {equipamentos_text}"
     )
     return PROMPT_TEMPLATE.replace("<<<RESPOSTAS_ANAMNESE>>>", anamnese_text)
 
@@ -136,25 +140,17 @@ def persist_workout_plan(plan: dict, session: Session) -> dict:
     if not isinstance(programa, dict) or not isinstance(treinos, list) or not treinos:
         raise HTTPException(status_code=400, detail="Estrutura do plano inválida")
 
-    nome_programa = programa.get("nomePrograma")
-    descricao_programa = programa.get("descricaoPrograma")
-
-    if not nome_programa or not descricao_programa:
-        raise HTTPException(status_code=400, detail="Dados do programa incompletos")
-
-    treinos_inseridos: list[int] = []
-
-    insert_treino_sql = text(
+    insert_programa_sql = text(
         """
-        INSERT INTO TCC.TREINO (nome, descricao, id_usuario, duracao, dificuldade)
-        VALUES (:nome, :descricao, :id_usuario, :duracao, :dificuldade)
+        INSERT INTO TCC.PROGRAMA_TREINO (id_usu, nome, descricao)
+        VALUES (:id_usuario, :nome_programa, :descricao_programa)
         """
     )
 
-    insert_programa_sql = text(
+    insert_treino_sql = text(
         """
-        INSERT INTO TCC.PROGRAMA_TREINO (id_usu, id_treino, nome, descricao)
-        VALUES (:id_usuario, :id_treino, :nome_programa, :descricao_programa)
+        INSERT INTO TCC.TREINO (nome, descricao, id_usuario, id_programa_treino, duracao, dificuldade)
+        VALUES (:nome, :descricao, :id_usuario, :id_programa_treino, :duracao, :dificuldade)
         """
     )
 
@@ -172,6 +168,31 @@ def persist_workout_plan(plan: dict, session: Session) -> dict:
         """
     )
 
+    treinos_inseridos: list[int] = []
+
+    nome_programa = programa.get("nomePrograma")
+    descricao_programa = programa.get("descricaoPrograma")
+
+    if not nome_programa or not descricao_programa:
+        raise HTTPException(status_code=400, detail="Dados do programa incompletos")
+
+    try:
+        usuario_programa_id = int(treinos[0].get("idUsuario"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="ID de usuário inválido no plano gerado")
+
+    programa_result = session.execute(
+        insert_programa_sql,
+        {
+            "id_usuario": usuario_programa_id,
+            "nome_programa": nome_programa,
+            "descricao_programa": descricao_programa,
+        }
+    )
+    programa_id = programa_result.lastrowid
+    if not programa_id:
+        raise HTTPException(status_code=500, detail="Falha ao inserir programa de treino")
+
     for treino in treinos:
         try:
             id_usuario = int(treino.get("idUsuario"))
@@ -181,6 +202,9 @@ def persist_workout_plan(plan: dict, session: Session) -> dict:
 
         if id_usuario < 1 or duracao < 10:
             raise HTTPException(status_code=400, detail="Valores inconsistentes no treino gerado")
+
+        if id_usuario != usuario_programa_id:
+            raise HTTPException(status_code=400, detail="Todos os treinos do programa devem pertencer ao mesmo usuário")
 
         nome_treino = treino.get("nome")
         descricao_treino = treino.get("descricao")
@@ -195,6 +219,7 @@ def persist_workout_plan(plan: dict, session: Session) -> dict:
                 "nome": nome_treino,
                 "descricao": descricao_treino,
                 "id_usuario": id_usuario,
+                "id_programa_treino": programa_id,
                 "duracao": duracao,
                 "dificuldade": dificuldade.lower(),
             }
@@ -204,16 +229,6 @@ def persist_workout_plan(plan: dict, session: Session) -> dict:
             raise HTTPException(status_code=500, detail="Falha ao inserir treino")
 
         treinos_inseridos.append(treino_id)
-
-        session.execute(
-            insert_programa_sql,
-            {
-                "id_usuario": id_usuario,
-                "id_treino": treino_id,
-                "nome_programa": nome_programa,
-                "descricao_programa": descricao_programa,
-            }
-        )
 
         exercicios = treino.get("exercicios") or []
         if not exercicios:
@@ -254,8 +269,12 @@ def persist_workout_plan(plan: dict, session: Session) -> dict:
                     }
                 )
 
+    if not treinos_inseridos:
+        raise HTTPException(status_code=500, detail="Nenhum treino foi inserido para o programa")
+
     return {
         "programa": {
+            "id_programa_treino": programa_id,
             "nome": nome_programa,
             "descricao": descricao_programa,
         },
@@ -267,7 +286,8 @@ def persist_workout_plan(plan: dict, session: Session) -> dict:
 def gpt(anamnese: PostAnamnese, session: Session = Depends(get_db_mysql)):
     prompt = build_prompt(anamnese)
     plano = gpt_response(prompt)
-
+    print(plano)
+    
     try:
         resultado = persist_workout_plan(plano, session)
         session.commit()
@@ -282,6 +302,7 @@ def gpt(anamnese: PostAnamnese, session: Session = Depends(get_db_mysql)):
         "message": "Plano gerado e salvo com sucesso",
         "programa": resultado["programa"],
         "treinosIds": resultado["treinos_inseridos"],
+        "plano": plano,
     }
 
 

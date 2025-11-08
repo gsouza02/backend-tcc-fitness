@@ -9,6 +9,7 @@ from src.core.init_db import create_db_tcc
 from src.routers.router import router
 from src.routers.apis.usuario import cadastro
 from src.routers.apis.usuario import gpt
+from src.routers.apis.treino import listagem
 ## ----------------------------------------------
 # from starlette.middleware.base import BaseHTTPMiddleware
 
