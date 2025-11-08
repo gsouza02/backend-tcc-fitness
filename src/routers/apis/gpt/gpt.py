@@ -299,10 +299,7 @@ def gpt(anamnese: PostAnamnese, session: Session = Depends(get_db_mysql)):
         raise HTTPException(status_code=500, detail=f"Erro ao salvar treino: {exc}") from exc
 
     return {
-        "message": "Plano gerado e salvo com sucesso",
-        "programa": resultado["programa"],
-        "treinosIds": resultado["treinos_inseridos"],
-        "plano": plano,
+        "message": "Plano gerado e salvo com sucesso"
     }
 
 

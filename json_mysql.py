@@ -1,11 +1,15 @@
 import json
 import pymysql
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 DB_CONFIG = {
-    "host": "localhost",
-    "user": "root",
-    "port": 3306,
-    "password": "root",
+    "host": os.getenv("MYSQL_HOST"),
+    "user": os.getenv("MYSQL_USER"),
+    "port": int(os.getenv("MYSQL_PORT")),
+    "password": os.getenv("MYSQL_PASSWORD"),
     "database": "TCC"
 }
 

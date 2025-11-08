@@ -12,12 +12,21 @@ def listar_ex(
     id_treino: int,
     session: Session = Depends(get_db_mysql)
 ):
-    """Retorna os exercícios associados a um treino específico."""
+    """Retorna os exercícios associados a um treino específico.
+    
+    Args:
+        user_id (int): ID do usuário.
+        id_treino (int): ID do treino.
+        session (Session): Sessão do banco de dados.
+    Returns:
+        dict: Dicionário contendo a lista de exercícios do treino.
+    """
+
     query = """
    SELECT et.id_ex_treino, e.nome, e.grupo_muscular, e.equipamento, et.descanso, s.series, reps.repeticoes  FROM TCC.TREINO t
 LEFT JOIN TCC.EXERCICIO_TREINO et ON t.ID = et.id_treino
 LEFT JOIN TCC.EXERCICIOS e ON et.id_exercicio = e.id_exercicio
-LEFT JOIN TCC.SERIES reps ON reps.id_ex_treino = et.id_ex_treino
+LEFT JOIN (SELECT distinct(repeticoes), id_ex_treino FROM TCC.SERIES) reps ON reps.id_ex_treino = et.id_ex_treino
 LEFT JOIN (SELECT id_ex_treino, COUNT(*) as series FROM TCC.SERIES GROUP BY ID_EX_TREINO) s ON s.id_ex_treino = et.id_ex_treino
 where et.id_treino = :id_treino;
 """
@@ -31,7 +40,14 @@ def listar_programas_treino(
     user_id: int = Query(..., alias="userId", description="ID do usuário"),
     session: Session = Depends(get_db_mysql)
 ):
-    """Retorna os programas de treino associados a um usuário."""
+    """Retorna os programas de treino associados a um usuário.
+    
+    Args:
+        user_id (int): ID do usuário.
+        session (Session): Sessão do banco de dados.
+    Returns:
+        dict: Dicionário contendo a lista de programas de treino do usuário.
+    """
     query = """
         SELECT 
             pt.id_programa_treino,
@@ -55,6 +71,15 @@ def listar_treinos_programas(
     id_programa: int,
     session: Session = Depends(get_db_mysql)
 ):
+    
+    """Retorna os treinos associados a um programa de treino específico.
+    Args:
+        user_id (int): ID do usuário.
+        id_programa (int): ID do programa de treino.
+        session (Session): Sessão do banco de dados.
+    Returns:
+        list: Lista de treinos do programa de treino.
+    """
     query = """
     SELECT t.id, t.nome, t.descricao, t.duracao, t.dificuldade FROM 
 TCC.PROGRAMA_TREINO pt 
