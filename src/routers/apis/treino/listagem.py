@@ -14,9 +14,10 @@ def listar_ex(
 ):
     """Retorna os exercícios associados a um treino específico."""
     query = """
-   SELECT et.id_ex_treino, e.nome, e.grupo_muscular, e.equipamento, et.descanso, s.series FROM TCC.TREINO t
+   SELECT et.id_ex_treino, e.nome, e.grupo_muscular, e.equipamento, et.descanso, s.series, reps.repeticoes  FROM TCC.TREINO t
 LEFT JOIN TCC.EXERCICIO_TREINO et ON t.ID = et.id_treino
 LEFT JOIN TCC.EXERCICIOS e ON et.id_exercicio = e.id_exercicio
+LEFT JOIN TCC.SERIES reps ON reps.id_ex_treino = et.id_ex_treino
 LEFT JOIN (SELECT id_ex_treino, COUNT(*) as series FROM TCC.SERIES GROUP BY ID_EX_TREINO) s ON s.id_ex_treino = et.id_ex_treino
 where et.id_treino = :id_treino;
 """
