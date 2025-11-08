@@ -32,7 +32,7 @@ where et.id_treino = :id_treino;
 """
 
     exercicios = consulta_get(query, session, {"id_treino": id_treino})
-    return {"exercicios": exercicios}
+    return exercicios
 
 
 @router.get("/programas")
@@ -62,7 +62,7 @@ def listar_programas_treino(
     """
 
     programas = consulta_get(query, session, {"user_id": user_id})
-    return {"programas_treino": programas}
+    return programas
 
 
 @router.get("/treinos-programa")

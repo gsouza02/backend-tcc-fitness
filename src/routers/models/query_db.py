@@ -87,5 +87,34 @@ queries_db = {
                 ON DELETE CASCADE
                 ON UPDATE CASCADE
         );
-    """
+    """,
+
+    "dieta": """
+        CREATE TABLE IF NOT EXISTS TCC.DIETA (
+    id_dieta INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    descricao TEXT,
+    id_usuario INT NOT NULL,
+    
+    CONSTRAINT fk_dieta_usuario
+        FOREIGN KEY (id_usuario)
+        REFERENCES TCC.USUARIO(id)
+);
+    """,
+
+    "refeicoes": """
+        CREATE TABLE IF NOT EXISTS TCC.REFEICOES (
+    id_refeicao INT AUTO_INCREMENT PRIMARY KEY,
+    calorias INT,
+    alimentos VARCHAR(5000) NOT NULL,
+    tipo_refeicao VARCHAR(50) NOT NULL,
+    id_dieta INT NOT NULL,
+    
+    CONSTRAINT fk_refeicao_dieta
+        FOREIGN KEY (id_dieta)
+        REFERENCES TCC.DIETA(id_dieta)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+"""
 }
