@@ -18,6 +18,8 @@ queries_db = {
             nome VARCHAR(100) NOT NULL,
             descricao VARCHAR(255),
             id_usuario INT NOT NULL,
+            duracao INT,
+            dificuldade VARCHAR(50),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             FOREIGN KEY (id_usuario)
@@ -41,6 +43,7 @@ queries_db = {
             id_ex_treino INT AUTO_INCREMENT PRIMARY KEY,
             id_exercicio INT NOT NULL,
             id_treino INT NOT NULL,
+            descanso INT,
             FOREIGN KEY (id_exercicio)
                 REFERENCES TCC.EXERCICIOS(id_exercicio)
                 ON DELETE CASCADE
@@ -66,9 +69,9 @@ queries_db = {
         );
     """,
 
-    "rotina": """
-        CREATE TABLE IF NOT EXISTS TCC.ROTINA (
-            id_rotina INT AUTO_INCREMENT PRIMARY KEY,
+    "PROGRAMA_TREINO": """
+        CREATE TABLE IF NOT EXISTS TCC.PROGRAMA_TREINO (
+            id_PROGRAMA_TREINO INT AUTO_INCREMENT PRIMARY KEY,
             id_usu INT NOT NULL,
             id_treino INT NOT NULL,
             nome VARCHAR(100) NOT NULL,
