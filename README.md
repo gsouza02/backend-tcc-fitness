@@ -11,36 +11,38 @@ Abaixo como rodar essa aplicação.
 - criar **.env** para configuração de variáveis de ambient.
 
 ## Instalação do uv
-
-**Windows (PowerShell):**
+``` bash
+# Windows (PowerShell):
 irm https://astral.sh/uv/install.ps1 | iex
 
-**Linux / macOS:**
+# Linux / macOS:
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-Após a instalação, feche e reabra o terminal e confirme:
+# Após a instalação, feche e reabra o terminal e confirme:
 uv --version
-(deve aparecer algo como: uv 0.9.5 (https://astral.sh/uv))
-
+# (deve aparecer algo como: uv 0.9.5 (https://astral.sh/uv))
+```
 ## Configuração do ambiente
-
 Para instalar todas as dependências do projeto:
-`uv sync`
+``` bash
+uv sync
+```
 
 Esse comando cria automaticamente o ambiente virtual do projeto e instala todas as dependências listadas no pyproject.toml.
 
 ## Execução da aplicação
 
-O projeto possui uma task configurada chamada `s`, que executa o servidor FastAPI em modo de desenvolvimento:
+O projeto possui uma task configurada chamada `start`, que executa o servidor FastAPI em modo de produção:
 
-
-Após isso:
-
-`uv run task start`
-
-No pyproject.toml, a task está configurada assim:
+No `pyproject.toml`, a task está configurada assim:
 [tool.taskipy.tasks]
 start = "uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+
+Rode o comando:
+``` bash
+uv run task start
+```
+
 
 O servidor será iniciado e poderá ser acessado em http://127.0.0.1:8000
 
