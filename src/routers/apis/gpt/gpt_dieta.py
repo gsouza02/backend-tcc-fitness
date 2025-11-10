@@ -5,6 +5,7 @@ from src.routers.router import router
 from src.core.database import get_db_mysql
 from src.routers.models.anamnesemodel import PostAnamneseDieta
 from src.routers.apis.gpt.funcs_gpt import gpt_response
+from src.routers.models.consultas import consulta_get
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
@@ -75,30 +76,38 @@ ANAMNESE DO USUÁRIO
 
 
 def build_prompt(anamnese: PostAnamneseDieta) -> str:
-    objetivos_text = ", ".join(anamnese.objetivos) if anamnese.objetivos else "não especificado"
-    equipamentos_text = anamnese.equipamentos or "não informado"
 
     anamnese_text = (
-        f"ID do usuário: {anamnese.usuario_id}\n"
-        f"Idade: {anamnese.idade}\n"
-        f"Sexo: {anamnese.sexo}\n"
-        f"Peso (kg): {anamnese.peso}\n"
-        f"Experiência: {anamnese.experiencia}\n"
-        f"Tempo de treino atual: {anamnese.tempo_treino}\n"
-        f"Dias por semana disponíveis: {anamnese.dias_semana}\n"
-        f"Tempo disponível por treino: {anamnese.tempo_treino_por_dia}\n"
-        f"Objetivos principais: {objetivos_text}\n"
-        f"Objetivo específico: {anamnese.objetivo_especifico}\n"
-        f"Lesões ou limitações: {anamnese.lesao or 'nenhuma'}\n"
-        f"Condições médicas: {anamnese.condicao_medica or 'nenhuma'}\n"
-        f"Exercícios que não gosta: {anamnese.exercicio_nao_gosta or 'nenhum'}\n"
-        f"Equipamentos disponíveis: {equipamentos_text}"
-    )
+    f"ID do usuário: {anamnese.usuario_id}\n"
+    f"Sexo: {anamnese.sexo}\n"
+    f"Idade: {anamnese.idade}\n"
+    f"Altura (m): {anamnese.altura}\n"
+    f"Peso atual (kg): {anamnese.pesoatual}\n"
+    f"Peso desejado (kg): {anamnese.pesodesejado}\n"
+    f"Objetivo: {anamnese.objetivo}\n"
+    f"Data meta: {anamnese.data_meta}\n"
+    f"Avaliação da rotina: {anamnese.avalicao_rotina}\n"
+    f"Orçamento disponível: {anamnese.orcamento}\n"
+    f"Alimentos acessíveis: {'sim' if anamnese.alimentos_acessiveis else 'não'}\n"
+    f"Come fora com frequência: {'sim' if anamnese.come_fora else 'não'}\n"
+    f"Tipo de alimentação: {anamnese.tipo_alimentacao}\n"
+    f"Alimentos que gosta: {anamnese.alimentos_gosta or 'nenhum'}\n"
+    f"Alimentos que não gosta: {anamnese.alimentos_nao_gosta or 'nenhum'}\n"
+    f"Quantidade de refeições por dia: {anamnese.qtd_refeicoes}\n"
+    f"Faz lanches entre refeições: {'sim' if anamnese.lanche_entre_refeicoes else 'não'}\n"
+    f"Horário de alimentação: {anamnese.horario_alimentacao}\n"
+    f"Prepara a própria refeição: {'sim' if anamnese.prepara_propria_refeicao else 'não'}\n"
+    f"Onde costuma comer: {anamnese.onde_come}\n"
+    f"Possui alergias: {'sim' if anamnese.possui_alergias else 'não'}\n"
+    f"Condição médica: {anamnese.possui_condicao_medica or 'nenhuma'}\n"
+    f"Usa suplementos: {'sim' if anamnese.uso_suplementos else 'não'}"
+)
+
     return PROMPT_TEMPLATE.replace("<<<RESPOSTAS_ANAMNESE>>>", anamnese_text)
 
 
 @router.post("/gpt/dieta")
-def gpt(anamnese: PostAnamneseDieta):
+def gpt_dieta(anamnese: PostAnamneseDieta):
     prompt = build_prompt(anamnese)
     plano = gpt_response(prompt)
     print(plano)
@@ -108,9 +117,9 @@ def gpt(anamnese: PostAnamneseDieta):
     }
 
 @router.post("/gpt/dieta/confirm")
-def confirmar_plano(payload: dict, session: Session = Depends(get_db_mysql)):
+def confirmar_dieta(payload: dict, session: Session = Depends(get_db_mysql)):
     try:
-        resultado = persist_diet_plan(payload.plano, session)
+        resultado = persist_diet_plan(payload['plano'], session)
         session.commit()
     except HTTPException:
         session.rollback()
@@ -133,9 +142,9 @@ def persist_diet_plan(plano: dict, session: Session) -> dict:
         VALUES (:nome, :descricao, :usuario);
         """)
 
-        get_last_dieta_id_query = text("""
-        SELECT LAST_INSERT_ID() AS last_id WHERE ID_USUARIO = :usuario;
-        """)
+        get_last_dieta_id_query = """
+        SELECT id_dieta AS last_id from TCC.DIETA WHERE id_usuario = :usuario ORDER BY id_dieta DESC LIMIT 1;
+        """
 
         insert_refeicoes_query = text("""
         INSERT INTO TCC.REFEICOES (id_dieta, tipo_refeicao, alimentos, calorias)
@@ -148,11 +157,7 @@ def persist_diet_plan(plano: dict, session: Session) -> dict:
             "usuario": plano["usuario"],
         })
 
-        result = session.execute(get_last_dieta_id_query, {
-            "usuario": plano["usuario"],
-        })
-
-        last_dieta_id = result.fetchone()["last_id"]
+        last_dieta_id = consulta_get(get_last_dieta_id_query, session, {"usuario": plano["usuario"]})[0]["last_id"]
 
         refeicoes_inseridas = []
         for refeicao in plano["refeicoes"]:
