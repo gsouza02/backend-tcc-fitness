@@ -9,13 +9,15 @@ import os
 from dotenv import load_dotenv
 import json
 from typing import Any
+from pydantic import BaseModel, Field
 
 PROMPT_TEMPLATE = """
 Você é uma IA de prescrição de treinos. Sua única tarefa é gerar, a partir das respostas de anamnese descritas abaixo, um JSON válido que represente um programa de treino completo. Leia todo o enunciado antes de responder.
 
 REQUISITOS OBRIGATÓRIOS
 1. A resposta deve ser EXCLUSIVAMENTE um JSON bem formatado, sem comentários, cabeçalhos, explicações ou texto adicional.
-2. Siga exatamente o esquema:
+2. O foco é musculação tradicional em academia. Utilize exercícios com pesos livres, máquinas, cabos ou peso corporal, sempre coerentes com uma rotina de musculação.
+3. Siga exatamente o esquema:
 
 {
   "programaTreino": {
@@ -41,15 +43,16 @@ REQUISITOS OBRIGATÓRIOS
   ]
 }
 
-3. Todos os campos devem estar preenchidos com valores coerentes com as respostas da anamnese.
-4. Gere pelo menos 1 treino e entre 4 e 8 exercícios por treino.
-5. Use apenas números inteiros para campos numéricos.
-6. `idUsuario` deve ser coerente: se a anamnese informar um ID, use-o; se não, adote um número plausível (ex.: 1).
-7. Nomes e descrições precisam refletir objetivos, restrições, nível de experiência, tempo disponível e equipamentos do usuário.
-8. Exercícios devem ser compatíveis com as condições e equipamento informados. Ajuste séries, repetições e descanso conforme o nível/objetivo (ex.: hipertrofia, resistência, emagrecimento).
-9. Se houver lesões ou limitações, adapte a seleção de exercícios e descreva isso no campo `descricao` do treino.
-10. Sempre retorne um JSON sintaticamente válido (aberturas/fechamentos corretos, aspas em strings, vírgulas adequadas).
-11. Gere um treino para cada dia disponivel do usuario.
+4. Todos os campos devem estar preenchidos com valores coerentes com as respostas da anamnese.
+5. Gere pelo menos 1 treino e entre 1 e 10 exercícios por treino.
+6. Use apenas números inteiros para campos numéricos.
+7. `idUsuario` deve ser coerente: se a anamnese informar um ID, use-o; se não, adote um número plausível (ex.: 1).
+8. Nomes e descrições precisam ser específicos e padronizados: use títulos como "Treino 01 - Peito e Tríceps Hipertrofia" ou "Treino 03 - Pernas Ênfase Quadríceps". A descrição deve mencionar objetivo do dia, intensidade e recomendações rápidas.
+9. Exercícios devem ser compatíveis com as condições e equipamento informados. Ajuste séries, repetições e descanso conforme o nível/objetivo (ex.: hipertrofia, resistência, emagrecimento).
+10. Mesmo quando o usuário pedir foco em um grupo muscular específico, distribua o programa para cobrir todo o corpo ao longo da semana. Apenas aumente a ênfase (mais volume/variações) no objetivo informado, sem negligenciar os demais grupos.
+11. Se houver lesões ou limitações, adapte a seleção de exercícios e descreva isso no campo `descricao` do treino.
+12. Sempre retorne um JSON sintaticamente válido (aberturas/fechamentos corretos, aspas em strings, vírgulas adequadas).
+13. Gere um treino para cada dia disponível do usuário.
 
 PROCESSO DE GERAÇÃO
 - Primeiro, interprete o perfil do usuário (idade, experiência, disponibilidade, objetivos, lesões, equipamentos).
@@ -57,12 +60,23 @@ PROCESSO DE GERAÇÃO
 - Defina nome e descrição do programa resumindo o objetivo principal e a abordagem.
 - Para cada treino:
   • Defina nome e descrição específicos, destacando foco muscular, objetivo do dia e recomendações.
-  • Escolha exercícios compatíveis; variem grupos musculares conforme os objetivos.
+  • Escolha exercícios compatíveis; distribua os grupos musculares ao longo da semana, priorizando o objetivo sem excluir os demais.
   • Ajuste séries, repetições e descanso para refletir intensidade e tempo disponível.
   • Mantenha a duração total aproximada coerente com o tempo informado.
 
 ANAMNESE DO USUÁRIO
 <<<RESPOSTAS_ANAMNESE>>>
+"""
+
+ADJUSTMENT_SUFFIX_TEMPLATE = """
+
+PLANO ATUAL EM JSON:
+{plano_atual}
+
+ALTERAÇÕES SOLICITADAS PELO USUÁRIO:
+{ajustes}
+
+Produza um NOVO plano de treino seguindo todas as regras anteriores e aplicando exatamente as alterações solicitadas. Continue com foco em musculação, use nomes padronizados no estilo \"Treino 02 - Costas e Bíceps Intensidade Média\" e mantenha a distribuição equilibrada dos grupos musculares, apenas aumentando a ênfase naquilo que o usuário solicitou. A resposta deve ser exclusivamente um JSON válido, no mesmo formato especificado anteriormente.
 """
 
 
@@ -89,6 +103,16 @@ def build_prompt(anamnese: PostAnamnese) -> str:
     return PROMPT_TEMPLATE.replace("<<<RESPOSTAS_ANAMNESE>>>", anamnese_text)
 
 
+def build_adjustment_prompt(anamnese: PostAnamnese, plano_atual: dict, ajustes: str) -> str:
+    base_prompt = build_prompt(anamnese)
+    plano_json = json.dumps(plano_atual, ensure_ascii=False, indent=2)
+    ajustes_texto = ajustes.strip() or "Sem ajustes adicionais fornecidos."
+    return base_prompt + ADJUSTMENT_SUFFIX_TEMPLATE.format(
+        plano_atual=plano_json,
+        ajustes=ajustes_texto,
+    )
+
+
 def parse_response_output(response: Any) -> str:
     if hasattr(response, "output_text") and response.output_text:
         return response.output_text
@@ -110,6 +134,27 @@ def parse_response_output(response: Any) -> str:
     return "".join(text_chunks)
 
 
+def extract_json_payload(raw_text: str) -> str:
+    if not raw_text:
+        return ""
+
+    cleaned = raw_text.strip()
+
+    if cleaned.startswith("```"):
+        cleaned = cleaned.strip("`")
+        newline_index = cleaned.find("\n")
+        if newline_index != -1:
+            cleaned = cleaned[newline_index + 1 :].strip()
+
+    first_brace = cleaned.find("{")
+    last_brace = cleaned.rfind("}")
+
+    if first_brace != -1 and last_brace != -1 and last_brace >= first_brace:
+        return cleaned[first_brace : last_brace + 1]
+
+    return cleaned
+
+
 def gpt_response(prompt: str) -> dict:
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
@@ -129,8 +174,12 @@ def gpt_response(prompt: str) -> dict:
 
     try:
         return json.loads(raw_text)
-    except json.JSONDecodeError as exc:
-        raise HTTPException(status_code=502, detail=f"Falha ao decodificar JSON da IA: {exc}") from exc
+    except json.JSONDecodeError:
+        try:
+            json_payload = extract_json_payload(raw_text)
+            return json.loads(json_payload)
+        except json.JSONDecodeError as exc:
+            raise HTTPException(status_code=502, detail=f"Falha ao decodificar JSON da IA: {exc}") from exc
 
 
 def persist_workout_plan(plan: dict, session: Session) -> dict:
@@ -139,6 +188,15 @@ def persist_workout_plan(plan: dict, session: Session) -> dict:
 
     if not isinstance(programa, dict) or not isinstance(treinos, list) or not treinos:
         raise HTTPException(status_code=400, detail="Estrutura do plano inválida")
+
+    select_exercicio_sql = text(
+        """
+        SELECT id_exercicio
+        FROM TCC.EXERCICIOS
+        WHERE id_exercicio = :id_exercicio
+        LIMIT 1
+        """
+    )
 
     insert_programa_sql = text(
         """
@@ -246,6 +304,16 @@ def persist_workout_plan(plan: dict, session: Session) -> dict:
             if id_exercicio < 1 or series_total < 1 or repeticoes < 1 or descanso < 15:
                 raise HTTPException(status_code=400, detail="Valores inconsistentes nos exercícios gerados")
 
+            exercicio_existe = session.execute(
+                select_exercicio_sql, {"id_exercicio": id_exercicio}
+            ).scalar()
+
+            if not exercicio_existe:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Exercício com ID {id_exercicio} não encontrado na tabela EXERCICIOS.",
+                )
+
             result_ex_treino = session.execute(
                 insert_exercicio_treino_sql,
                 {
@@ -279,17 +347,46 @@ def persist_workout_plan(plan: dict, session: Session) -> dict:
             "descricao": descricao_programa,
         },
         "treinos_inseridos": treinos_inseridos,
+        "plano": plan,
     }
 
 
+class PlanPayload(BaseModel):
+    plano: dict
+
+
+class AdjustmentPayload(BaseModel):
+    anamnese: PostAnamnese
+    plano_atual: dict = Field(..., alias="planoAtual")
+    ajustes: str
+
+
 @router.post("/gpt")
-def gpt(anamnese: PostAnamnese, session: Session = Depends(get_db_mysql)):
+def gpt(anamnese: PostAnamnese):
     prompt = build_prompt(anamnese)
     plano = gpt_response(prompt)
     print(plano)
-    
+    return {
+        "message": "Plano gerado com sucesso",
+        "plano": plano,
+    }
+
+
+@router.post("/gpt/ajustar")
+def ajustar_plano(payload: AdjustmentPayload):
+    prompt = build_adjustment_prompt(payload.anamnese, payload.plano_atual, payload.ajustes)
+    plano = gpt_response(prompt)
+    print(plano)
+    return {
+        "message": "Plano ajustado com sucesso",
+        "plano": plano,
+    }
+
+
+@router.post("/gpt/confirm")
+def confirmar_plano(payload: PlanPayload, session: Session = Depends(get_db_mysql)):
     try:
-        resultado = persist_workout_plan(plano, session)
+        resultado = persist_workout_plan(payload.plano, session)
         session.commit()
     except HTTPException:
         session.rollback()
@@ -299,8 +396,8 @@ def gpt(anamnese: PostAnamnese, session: Session = Depends(get_db_mysql)):
         raise HTTPException(status_code=500, detail=f"Erro ao salvar treino: {exc}") from exc
 
     return {
-        "message": "Plano gerado e salvo com sucesso"
+        "message": "Plano gerado e salvo com sucesso",
+        "programa": resultado["programa"],
+        "treinosIds": resultado["treinos_inseridos"],
+        "plano": resultado["plano"],
     }
-
-
-    

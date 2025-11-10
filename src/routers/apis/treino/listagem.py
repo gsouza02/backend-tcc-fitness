@@ -1,10 +1,36 @@
 from fastapi import Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import text, bindparam
+from pydantic import BaseModel, Field
 
 from src.routers.router import router
 from src.core.database import get_db_mysql
 from src.routers.models.consultas import consulta_get
+
+
+class ExerciseCatalogRequest(BaseModel):
+    exercicios_ids: list[int] = Field(default_factory=list, alias="exerciciosIds")
+
+
+@router.post("/exercicios/catalogo")
+def catalogo_exercicios(payload: ExerciseCatalogRequest, session: Session = Depends(get_db_mysql)):
+    ids = [ex for ex in payload.exercicios_ids if isinstance(ex, int) and ex > 0]
+    if not ids:
+        return {"exercicios": []}
+
+    query = text(
+        """
+        SELECT id_exercicio, nome, grupo_muscular, equipamento
+        FROM TCC.EXERCICIOS
+        WHERE id_exercicio IN :ids
+        ORDER BY id_exercicio
+        """
+    ).bindparams(bindparam("ids", expanding=True))
+
+    result = session.execute(query, {"ids": ids})
+    rows = [dict(row._mapping) for row in result.fetchall()]
+    return {"exercicios": rows}
+
 
 @router.get("/exercicios-treinos")
 def listar_ex(
