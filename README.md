@@ -8,16 +8,18 @@ Abaixo como rodar essa aplicação.
 - Python 3.13 ou superior  
 - uv instalado (gerenciador oficial da Astral)
 - MYSQL instalado no computador e rodando.
-- criar **.env** para configuração de variáveis de ambient.
+- criar **.env** para configuração de variáveis de ambiente.
 
 ## Instalação do uv
 ``` bash
 # Windows (PowerShell):
 irm https://astral.sh/uv/install.ps1 | iex
-
+```
+``` bash
 # Linux / macOS:
 curl -LsSf https://astral.sh/uv/install.sh | sh
-
+```
+``` bash
 # Após a instalação, feche e reabra o terminal e confirme:
 uv --version
 # (deve aparecer algo como: uv 0.9.5 (https://astral.sh/uv))
