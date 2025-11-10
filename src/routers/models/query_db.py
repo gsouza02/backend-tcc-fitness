@@ -49,25 +49,14 @@ queries_db = {
         );
     """,
 
-    "exercicios": """
-        CREATE TABLE IF NOT EXISTS TCC.EXERCICIOS (
-            id_exercicio INT AUTO_INCREMENT PRIMARY KEY,
-            nome VARCHAR(100) NOT NULL,
-            equipamento VARCHAR(100),
-            grupo_muscular VARCHAR(100)
-        );
-    """,
-
     "exercicio_treino": """
         CREATE TABLE IF NOT EXISTS TCC.EXERCICIO_TREINO (
             id_ex_treino INT AUTO_INCREMENT PRIMARY KEY,
-            id_exercicio INT NOT NULL,
+            nome_exercicio VARCHAR(100) NOT NULL,
+            equipamento VARCHAR(100) NOT NULL,
+            grupo_muscular VARCHAR(100) NOT NULL,
             id_treino INT NOT NULL,
             descanso INT,
-            FOREIGN KEY (id_exercicio)
-                REFERENCES TCC.EXERCICIOS(id_exercicio)
-                ON DELETE CASCADE
-                ON UPDATE CASCADE,
             FOREIGN KEY (id_treino)
                 REFERENCES TCC.TREINO(id)
                 ON DELETE CASCADE

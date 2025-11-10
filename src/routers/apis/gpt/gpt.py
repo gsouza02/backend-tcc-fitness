@@ -33,6 +33,9 @@ REQUISITOS OBRIGATÓRIOS
       "dificuldade": "iniciante" | "intermediario" | "avancado",
       "exercicios": [
         {
+          "nomeExercicio": "nomes de exercícios de musculação, cárdio, etc.",
+          "equipamento": "equipamento necessário para o exercício",
+          "grupoMuscular": "grupo muscular alvo do exercício",
           "idExercicio": inteiro >= 1,
           "series": inteiro >= 1,
           "repeticoes": inteiro >= 1,
@@ -189,15 +192,6 @@ def persist_workout_plan(plan: dict, session: Session) -> dict:
     if not isinstance(programa, dict) or not isinstance(treinos, list) or not treinos:
         raise HTTPException(status_code=400, detail="Estrutura do plano inválida")
 
-    select_exercicio_sql = text(
-        """
-        SELECT id_exercicio
-        FROM TCC.EXERCICIOS
-        WHERE id_exercicio = :id_exercicio
-        LIMIT 1
-        """
-    )
-
     insert_programa_sql = text(
         """
         INSERT INTO TCC.PROGRAMA_TREINO (id_usu, nome, descricao)
@@ -214,8 +208,8 @@ def persist_workout_plan(plan: dict, session: Session) -> dict:
 
     insert_exercicio_treino_sql = text(
         """
-        INSERT INTO TCC.EXERCICIO_TREINO (id_exercicio, id_treino, descanso)
-        VALUES (:id_exercicio, :id_treino, :descanso)
+        INSERT INTO TCC.EXERCICIO_TREINO (nome_exercicio, equipamento, grupo_muscular, id_treino, descanso)
+        VALUES (:nome_exercicio, :equipamento, :grupo_muscular, :id_treino, :descanso)
         """
     )
 
@@ -294,30 +288,26 @@ def persist_workout_plan(plan: dict, session: Session) -> dict:
 
         for exercicio in exercicios:
             try:
-                id_exercicio = int(exercicio.get("idExercicio"))
+                nome = exercicio.get("nomeExercicio")
+                equipamento = exercicio.get("equipamento")
+                grupo_muscular = exercicio.get("grupoMuscular")
+                if not nome or not equipamento or not grupo_muscular:
+                    raise HTTPException(status_code=400, detail="Dados obrigatórios do exercício ausentes")
                 series_total = int(exercicio.get("series"))
                 repeticoes = int(exercicio.get("repeticoes"))
                 descanso = int(exercicio.get("descansoSegundos"))
             except (TypeError, ValueError):
                 raise HTTPException(status_code=400, detail="Campos numéricos inválidos nos exercícios gerados")
 
-            if id_exercicio < 1 or series_total < 1 or repeticoes < 1 or descanso < 15:
+            if series_total < 1 or repeticoes < 1 or descanso < 15:
                 raise HTTPException(status_code=400, detail="Valores inconsistentes nos exercícios gerados")
-
-            exercicio_existe = session.execute(
-                select_exercicio_sql, {"id_exercicio": id_exercicio}
-            ).scalar()
-
-            if not exercicio_existe:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Exercício com ID {id_exercicio} não encontrado na tabela EXERCICIOS.",
-                )
 
             result_ex_treino = session.execute(
                 insert_exercicio_treino_sql,
                 {
-                    "id_exercicio": id_exercicio,
+                    "nome_exercicio": nome,
+                    "equipamento": equipamento,
+                    "grupo_muscular": grupo_muscular,
                     "id_treino": treino_id,
                     "descanso": descanso,
                 }
