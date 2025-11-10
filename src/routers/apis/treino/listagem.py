@@ -30,9 +30,8 @@ def listar_ex(
     """
 
     query = """
-   SELECT et.id_ex_treino, e.nome, e.grupo_muscular, e.equipamento, et.descanso, s.series, reps.repeticoes as reps  FROM TCC.TREINO t
+   SELECT et.id_ex_treino, et.nome_exercicio, et.grupo_muscular, et.equipamento, et.descanso, s.series, reps.repeticoes as reps  FROM TCC.TREINO t
 LEFT JOIN TCC.EXERCICIO_TREINO et ON t.ID = et.id_treino
-LEFT JOIN TCC.EXERCICIOS e ON et.id_exercicio = e.id_exercicio
 LEFT JOIN (SELECT distinct(repeticoes), id_ex_treino FROM TCC.SERIES) reps ON reps.id_ex_treino = et.id_ex_treino
 LEFT JOIN (SELECT id_ex_treino, COUNT(*) as series FROM TCC.SERIES GROUP BY ID_EX_TREINO) s ON s.id_ex_treino = et.id_ex_treino
 where et.id_treino = :id_treino;
@@ -96,24 +95,3 @@ where t.id_programa_treino = :id_programa;
 
     treinos = consulta_get(query, session, {"id_programa": id_programa})
     return treinos
-
-
-@router.get("/exercicios")
-def get_exericicios_by_id(id_exercicio: int, session: Session = Depends(get_db_mysql)):
-    """Retorna os detalhes de um exercício específico pelo seu ID.
-    
-    Args:
-        id_exercicio (int): ID do exercício.
-        session (Session): Sessão do banco de dados.
-    Returns:
-        dict: Dicionário contendo os detalhes do exercício.
-    """
-    query = """
-    SELECT * FROM TCC.EXERCICIOS e
-    WHERE id_exercicio = :id_exercicio;
-    """
-
-    exercicio = consulta_get(query, session, {"id_exercicio": id_exercicio})
-    if not exercicio:
-        raise HTTPException(status_code=404, detail="Exercício não encontrado")
-    return exercicio[0]
