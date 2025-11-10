@@ -1,3 +1,9 @@
+import bcrypt
+def gerar_senha(senha):
+    hashed = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt())
+    hashed_senha = hashed.decode('utf-8')
+    return hashed_senha
+
 queries_db = {
     
     "usuario": """
@@ -105,5 +111,15 @@ queries_db = {
         ON DELETE CASCADE
         ON UPDATE CASCADE
 );
+""",
+"usuario_primario": f"""
+INSERT INTO TCC.USUARIO (nome, email, username, senha)
+SELECT 'Admin', 'tcc@gmail.com', 'tcc', '{gerar_senha('tcc1234')}'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM TCC.USUARIO
+    WHERE username = 'tcc' OR email = 'tcc@gmail.com'
+);
+
 """
 }
