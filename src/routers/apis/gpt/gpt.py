@@ -287,6 +287,13 @@ class AdjustmentPayload(BaseModel):
 
 @router.post("/gpt")
 def gpt(anamnese: PostAnamnese):
+    """
+    Gera um plano de treino personalizado usando GPT com base na anamnese fornecida.
+    Args:
+        anamnese (PostAnamnese): Dados da anamnese do usuário.
+        Returns:
+            dict: Resposta com mensagem de sucesso e o plano gerado.
+        """
     prompt = build_prompt(anamnese)
     plano = gpt_response(prompt)
     print(plano)
@@ -309,6 +316,14 @@ def ajustar_plano(payload: AdjustmentPayload):
 
 @router.post("/gpt/confirm")
 def confirmar_plano(payload: PlanPayload, session: Session = Depends(get_db_mysql)):
+    """
+    Confirma e persiste o plano de treino gerado pelo GPT no banco de dados.
+    Args:
+        payload (PlanPayload): Payload contendo o plano de treino gerado.
+        session (Session): Sessão do banco de dados injetada pelo FastAPI.
+    Returns:
+        dict: Resposta com mensagem de sucesso, detalhes do programa e IDs dos treinos inseridos.
+    """
     try:
         resultado = persist_workout_plan(payload.plano, session)
         session.commit()

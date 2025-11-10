@@ -108,6 +108,13 @@ def build_prompt(anamnese: PostAnamneseDieta) -> str:
 
 @router.post("/gpt/dieta")
 def gpt_dieta(anamnese: PostAnamneseDieta):
+    """
+    Gera um plano de dieta personalizado usando GPT com base na anamnese fornecida.
+    Args:
+        anamnese (PostAnamneseDieta): Dados da anamnese do usuário.
+    Returns:
+        dict: Resposta contendo o plano de dieta gerado.
+    """
     prompt = build_prompt(anamnese)
     plano = gpt_response(prompt)
     print(plano)
@@ -118,6 +125,14 @@ def gpt_dieta(anamnese: PostAnamneseDieta):
 
 @router.post("/gpt/dieta/confirm")
 def confirmar_dieta(payload: dict, session: Session = Depends(get_db_mysql)):
+    """
+    Confirma e persiste o plano de dieta gerado pelo GPT no banco de dados.
+    Args:
+        payload (dict): Dados contendo o plano de dieta a ser salvo.
+        session (Session): Sessão do banco de dados.
+    Returns:
+        dict: Resposta indicando o sucesso da operação e detalhes do plano salvo.
+    """
     try:
         resultado = persist_diet_plan(payload['plano'], session)
         session.commit()
