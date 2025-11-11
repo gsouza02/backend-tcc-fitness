@@ -6,11 +6,9 @@ from src.core.database import get_db_mysql
 from src.routers.models.anamnesemodel import PostAnamneseDieta
 from src.routers.apis.gpt.funcs_gpt import gpt_response
 from src.routers.models.consultas import consulta_get
-from openai import OpenAI
-import os
-from dotenv import load_dotenv
-import json
+from pydantic import BaseModel, Field
 from typing import Any
+import json
 
 PROMPT_TEMPLATE = """
 Você é uma IA de prescrição de dietas. Sua única tarefa é gerar, a partir das respostas de anamnese descritas abaixo, um JSON válido que represente um plano alimentar completo. Leia todo o enunciado antes de responder.
@@ -23,12 +21,12 @@ Siga exatamente o esquema:
 
 {
 "nome": "string obrigatória",
-"descricao": "string obrigatória",
+"descricao": "string obrigatória (resuma objetivo nutricional, calorias alvo diárias e distribuição aproximada de macros)",
 "usuario": inteiro >= 1,
 "refeicoes": [
 {
-"calorias": inteiro >= 0 (calorias estimadas para a refeição),
-"alimentos": "string obrigatória (alimentos separados por vírgula)",
+"calorias": inteiro >= 0 (calorias estimadas para a refeição, coerentes com a soma dos alimentos listados),
+"alimentos": "string obrigatória: lista de pelo menos 3 alimentos no formato 'Nome Do Alimento - Quantidade Detalhada - Breve Preparação/Observação', sempre com a primeira letra de cada palavra em maiúsculo e separados por ponto e vírgula ';' (ex.: 'Peito De Frango Grelhado - 150 g - Grelhado Em Azeite; Arroz Integral - 120 g - Cozido Em Água; Brócolis Cozidos - 100 g - No Vapor'),",
 "tipoRefeicao": "Café da manhã" | "Almoço" | "Jantar" | "Lanche" | "Ceia" 
 }
 ]
@@ -42,36 +40,49 @@ Use apenas números inteiros para campos numéricos.
 
 O campo usuario deve conter o ID informado na anamnese; se não houver, adote um número plausível (ex.: 1).
 
-Os nomes e descrições devem refletir objetivos, preferências alimentares, restrições, rotina e metas do usuário.
+Os nomes e descrições devem refletir objetivos, preferências alimentares, restrições, rotina e metas do usuário. A descrição do plano deve explicar a estratégia calórica diária, a distribuição aproximada de macronutrientes (proteínas, carboidratos, gorduras) e orientações gerais (ex.: ingestão hídrica, temperos leves, opções de substituição).
 
-As calorias devem ser proporcionais ao objetivo (ex.: déficit para emagrecimento, superávit para ganho de massa).
+As calorias devem ser proporcionais ao objetivo (ex.: déficit para emagrecimento, superávit para ganho de massa), distribuídas ao longo das refeições conforme os horários informados e o número de refeições desejado.
 
-Os alimentos devem ser adequados às preferências e restrições informadas (ex.: vegetariano, intolerância à lactose, etc.).
+Os alimentos devem ser adequados às preferências e restrições informadas (ex.: vegetariano, intolerância à lactose, etc.). Cada alimento deve trazer porção/quantidade explícita em unidades do sistema métrico (gramas, mililitros) ou medidas caseiras detalhadas, com nome capitalizado (Title Case) e breve nota de preparo.
 
 Sempre retorne um JSON sintaticamente válido (aberturas/fechamentos corretos, aspas em strings, vírgulas adequadas).
 
-Cada refeição deve conter alimentos que façam sentido nutricionalmente para o horário e objetivo.
+Cada refeição deve conter alimentos que façam sentido nutricionalmente para o horário e objetivo, cobrindo proteína magra, carboidrato complexo e fonte de micronutrientes/fibras.
 
 PROCESSO DE GERAÇÃO
 
 Primeiro, interprete o perfil do usuário (idade, sexo, peso, altura, objetivo, rotina, restrições, preferências alimentares e horários).
 
-Determine o total calórico diário e divida entre as refeições conforme o padrão alimentar indicado.
+Determine o total calórico diário e divida entre as refeições conforme o padrão alimentar indicado, garantindo que a soma das calorias das refeições seja consistente (diferença máxima de ±50 kcal do total diário).
 
 Defina o nome e descrição do plano de forma clara e resumida, destacando o objetivo principal.
 
 Para cada refeição:
 
-Escolha alimentos adequados e variados.
+Escolha alimentos adequados e variados, sempre descrevendo a quantidade no formato "Nome Do Alimento - Quantidade - Preparo" (Title Case) e combinando fontes de proteína magra, carboidratos complexos, gorduras boas e fibras. Separe cada alimento por ponto e vírgula ';'.
 
-Ajuste as calorias conforme a proporção do total diário.
+Ajuste as calorias conforme a proporção do total diário, indicando refeições maiores em momentos estratégicos (ex.: pré/pós-treino, horários principais).
 
-Adapte os alimentos a restrições e preferências informadas.
+Adapte os alimentos a restrições e preferências informadas, sugerindo alternativas equivalentes quando houver limitações e mantendo a mesma formatação (Title Case + quantidade + preparo), sempre separados por ';'.
 
-Use quantidades e combinações coerentes com o horário e o objetivo nutricional.
+Use quantidades e combinações coerentes com o horário e o objetivo nutricional, evitando repetições excessivas e incluindo opções de frutas, vegetais e fontes integrais ao longo do dia, sempre com nomenclatura padronizada. Nunca liste apenas um alimento por refeição.
+
+Mencione preparos simples (assado, grelhado, cozido, cru) e evite alimentos ultraprocessados; priorize temperos naturais e hidratação adequada. Certifique-se de que a soma calórica reflita porções realistas (ovo inteiro ~70 kcal, banana média ~90 kcal, frango grelhado 150 g ~165 kcal etc.).
 
 ANAMNESE DO USUÁRIO
 <<<RESPOSTAS_ANAMNESE>>>
+"""
+
+ADJUSTMENT_SUFFIX_TEMPLATE = """
+
+PLANO ATUAL EM JSON:
+{plano_atual}
+
+ALTERAÇÕES SOLICITADAS PELO USUÁRIO:
+{ajustes}
+
+Produza um NOVO plano alimentar seguindo todas as instruções anteriores, ajustando exatamente o que foi solicitado e mantendo o formato JSON especificado. Garanta consistência calórica, variedade equilibrada e quantidades detalhadas por alimento, com no mínimo 3 itens por refeição.
 """
 
 
@@ -106,6 +117,22 @@ def build_prompt(anamnese: PostAnamneseDieta) -> str:
     return PROMPT_TEMPLATE.replace("<<<RESPOSTAS_ANAMNESE>>>", anamnese_text)
 
 
+def build_adjustment_prompt(anamnese: PostAnamneseDieta, plano_atual: dict, ajustes: str) -> str:
+    base_prompt = build_prompt(anamnese)
+    plano_json = json.dumps(plano_atual, ensure_ascii=False, indent=2)
+    ajustes_texto = ajustes.strip() or "Sem ajustes adicionais fornecidos"
+    return base_prompt + ADJUSTMENT_SUFFIX_TEMPLATE.format(
+        plano_atual=plano_json,
+        ajustes=ajustes_texto,
+    )
+
+
+class AdjustmentPayload(BaseModel):
+    anamnese: PostAnamneseDieta
+    plano_atual: dict = Field(..., alias="planoAtual")
+    ajustes: str
+
+
 @router.post("/gpt/dieta")
 def gpt_dieta(anamnese: PostAnamneseDieta):
     """
@@ -122,6 +149,18 @@ def gpt_dieta(anamnese: PostAnamneseDieta):
         "message": "Plano gerado com sucesso",
         "plano": plano,
     }
+
+
+@router.post("/gpt/dieta/ajustar")
+def ajustar_dieta(payload: AdjustmentPayload):
+    prompt = build_adjustment_prompt(payload.anamnese, payload.plano_atual, payload.ajustes)
+    plano = gpt_response(prompt)
+    print(plano)
+    return {
+        "message": "Plano de dieta ajustado com sucesso",
+        "plano": plano,
+    }
+
 
 @router.post("/gpt/dieta/confirm")
 def confirmar_dieta(payload: dict, session: Session = Depends(get_db_mysql)):
