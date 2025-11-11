@@ -62,7 +62,9 @@ queries_db = {
             equipamento VARCHAR(100) NOT NULL,
             grupo_muscular VARCHAR(100) NOT NULL,
             id_treino INT NOT NULL,
+            series INT,
             descanso INT,
+            reps INT,
             FOREIGN KEY (id_treino)
                 REFERENCES TCC.TREINO(id)
                 ON DELETE CASCADE

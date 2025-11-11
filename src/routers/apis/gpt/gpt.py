@@ -143,15 +143,8 @@ def persist_workout_plan(plan: dict, session: Session) -> dict:
 
     insert_exercicio_treino_sql = text(
         """
-        INSERT INTO TCC.EXERCICIO_TREINO (nome_exercicio, equipamento, grupo_muscular, id_treino, descanso)
-        VALUES (:nome_exercicio, :equipamento, :grupo_muscular, :id_treino, :descanso)
-        """
-    )
-
-    insert_serie_sql = text(
-        """
-        INSERT INTO TCC.SERIES (numero_serie, repeticoes, carga, id_ex_treino)
-        VALUES (:numero_serie, :repeticoes, :carga, :id_ex_treino)
+        INSERT INTO TCC.EXERCICIO_TREINO (nome_exercicio, equipamento, grupo_muscular, id_treino, descanso, series, reps)
+        VALUES (:nome_exercicio, :equipamento, :grupo_muscular, :id_treino, :descanso, :series, :reps)
         """
     )
 
@@ -243,6 +236,8 @@ def persist_workout_plan(plan: dict, session: Session) -> dict:
                     "nome_exercicio": nome,
                     "equipamento": equipamento,
                     "grupo_muscular": grupo_muscular,
+                    "series": series_total,
+                    "reps": repeticoes,
                     "id_treino": treino_id,
                     "descanso": descanso,
                 }
@@ -250,17 +245,6 @@ def persist_workout_plan(plan: dict, session: Session) -> dict:
             id_ex_treino = result_ex_treino.lastrowid
             if not id_ex_treino:
                 raise HTTPException(status_code=500, detail="Falha ao inserir exercício do treino")
-
-            for numero in range(1, series_total + 1):
-                session.execute(
-                    insert_serie_sql,
-                    {
-                        "numero_serie": numero,
-                        "repeticoes": repeticoes,
-                        "carga": None,
-                        "id_ex_treino": id_ex_treino,
-                    }
-                )
 
     if not treinos_inseridos:
         raise HTTPException(status_code=500, detail="Nenhum treino foi inserido para o programa")

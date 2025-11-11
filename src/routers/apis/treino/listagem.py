@@ -30,10 +30,8 @@ def listar_ex(
     """
 
     query = """
-   SELECT et.id_ex_treino, et.nome_exercicio, et.grupo_muscular, et.equipamento, et.descanso, s.series, reps.repeticoes as reps  FROM TCC.TREINO t
+   SELECT et.id_ex_treino, et.nome_exercicio, et.grupo_muscular, et.equipamento, et.descanso, et.series, et.reps  FROM TCC.TREINO t
 LEFT JOIN TCC.EXERCICIO_TREINO et ON t.ID = et.id_treino
-LEFT JOIN (SELECT distinct(repeticoes), id_ex_treino FROM TCC.SERIES) reps ON reps.id_ex_treino = et.id_ex_treino
-LEFT JOIN (SELECT id_ex_treino, COUNT(*) as series FROM TCC.SERIES GROUP BY ID_EX_TREINO) s ON s.id_ex_treino = et.id_ex_treino
 where et.id_treino = :id_treino;
 """
 
