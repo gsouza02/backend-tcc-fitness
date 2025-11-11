@@ -33,14 +33,3 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# class CookieMiddleware(BaseHTTPMiddleware):
-#     async def dispatch(self, request: Request, call_next):
-#             token = request.cookies.get('BBSSOToken')
-#             if token:
-#                 response = await call_next(request)
-#             else:
-#                 response = Response(content="Unauthorized", status_code=401)
-#             return response
-
-# app.add_middleware(CookieMiddleware)
