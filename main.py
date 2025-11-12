@@ -10,7 +10,7 @@ from src.routers.router import router
 from src.routers.apis.usuario import cadastro
 from src.routers.apis.dieta import dieta
 from src.routers.apis.gpt import gpt, gpt_dieta
-from src.routers.apis.treino import listagem
+from src.routers.apis.treino import listagem, treino_usuario
 ## ----------------------------------------------
 # from starlette.middleware.base import BaseHTTPMiddleware
 

@@ -72,6 +72,19 @@ queries_db = {
         );
     """,
 
+     "sessao_treino": """
+        CREATE TABLE IF NOT EXISTS TCC.SESSAO_TREINO (
+            id_sessao INT AUTO_INCREMENT PRIMARY KEY,
+            duracao_sessao INT,
+            descricao TEXT,
+            id_treino INT NOT NULL,
+            FOREIGN KEY (id_treino)
+                REFERENCES TCC.TREINO(id)
+                ON DELETE CASCADE
+                ON UPDATE CASCADE
+        );
+    """,
+
     "series": """
         CREATE TABLE IF NOT EXISTS TCC.SERIES (
             id_serie INT AUTO_INCREMENT PRIMARY KEY,
@@ -79,8 +92,13 @@ queries_db = {
             repeticoes INT NOT NULL CHECK (repeticoes > 0),
             carga DECIMAL(5,2) CHECK (carga >= 0),
             id_ex_treino INT NOT NULL,
+            id_sessao INT NOT NULL,
             FOREIGN KEY (id_ex_treino)
                 REFERENCES TCC.EXERCICIO_TREINO(id_ex_treino)
+                ON DELETE CASCADE
+                ON UPDATE CASCADE,
+            FOREIGN KEY (id_sessao)
+                REFERENCES TCC.SESSAO_TREINO(id_sessao)
                 ON DELETE CASCADE
                 ON UPDATE CASCADE
         );
