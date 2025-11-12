@@ -36,7 +36,7 @@ REQUISITOS OBRIGATÓRIOS
         {
           "nomeExercicio": "nomes de exercícios de musculação, cárdio, etc.",
           "equipamento": "equipamento necessário para o exercício",
-          "grupoMuscular": "grupo muscular alvo do exercício",
+          "grupoMuscular": "um dos valores permitidos: Peito, Costas, Ombro, Braço, Perna, Glúteo ou Abdômen",
           "idExercicio": inteiro >= 1,
           "series": inteiro >= 1,
           "repeticoes": inteiro >= 1,
@@ -65,7 +65,7 @@ PROCESSO DE GERAÇÃO
 - Defina nome e descrição do programa resumindo o objetivo principal e a abordagem.
 - Para cada treino:
   • Defina nome e descrição específicos, destacando foco muscular, objetivo do dia e recomendações.
-  • Escolha exercícios compatíveis; distribua os grupos musculares ao longo da semana, priorizando o objetivo sem excluir os demais.
+  • Escolha exercícios compatíveis; distribua os grupos musculares ao longo da semana usando exclusivamente os nomes permitidos.
   • Ajuste séries, repetições e descanso para refletir intensidade e tempo disponível.
   • Mantenha a duração total aproximada coerente com o tempo informado.
 
