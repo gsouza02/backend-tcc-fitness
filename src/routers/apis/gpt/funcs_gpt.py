@@ -20,7 +20,7 @@ def gpt_response(prompt: str) -> dict:
     client = OpenAI(api_key=api_key)
 
     response = client.responses.create(
-        model="gpt-4o-mini-2024-07-18",
+        model="ft:gpt-4o-mini-2024-07-18:tcc:teste2:CbGGCMeu",
         input=prompt
     )
 
